@@ -1,4 +1,14 @@
 services:
+  api:
+    build:
+      context: .
+    environment:
+      DB_URL: 'postgres://S32EFV:S32EFV@db:5432/S32EFV'
+    ports:
+      - "3001:3000"
+    depends_on:
+      - db
+
   db:
     image: postgres:15
     container_name: S32EFV_postgres
@@ -19,7 +29,6 @@ services:
     restart: unless-stopped
     environment:
       GF_PATHS_PROVISIONING: /etc/grafana/provisioning
-
     ports:
       - "3000:3000"
     volumes:
