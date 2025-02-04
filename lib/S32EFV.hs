@@ -1,10 +1,17 @@
-module S32EFV (classify, aggregate, Movement(..), Classification(..), Aggregate(..)) where
+module S32EFV
+( classify, aggregate, Movement(..)
+, Classification(..), Aggregate(..)
+, storeExpenses, retrieveExpenses
+, mkStorageHandle, StorageHandle
+) where
 
 import           Control.Monad ((<=<))
+import           Data.Aeson    (ToJSON (..))
 import           Data.List     (foldl')
 import           Data.Maybe    (mapMaybe)
 import           Data.Text     (Text)
 import qualified Data.Text     as T
+import           GHC.Generics  (Generic)
 
 type Line = Text
 
@@ -14,9 +21,14 @@ data Movement = MkMovement
   , mMonto :: !Text
   , mRef   :: !Text
   }
-  deriving Show
+  deriving stock (Show, Generic)
+  deriving anyclass ToJSON
 
 data Classification = Wants Movement | Needs Movement deriving Show
+
+instance ToJSON Classification where
+  toJSON (Wants m) = toJSON m
+  toJSON (Needs m) = toJSON m
 
 data Aggregate = MkAggregate
   { tWants   :: !Double
@@ -83,3 +95,31 @@ aggregate cls =
    in MkAggregate (toFixed ws) (toFixed ns) (toFixed ts) (toFixed $ ws / ts) (toFixed $ ns / ts)
   where
     toFixed n = (fromInteger $ round $ n * (10 ^ (2 :: Int))) / (10.0 ^^ (2 :: Int))
+
+type FileContents = Text
+
+-- | Parse expenses from file contents
+-- The first parameter tells how many lines to skip before starting to parse.
+classifyFromFileContents :: Int -> FileContents -> [Classification]
+classifyFromFileContents n contents =
+  let contents' = drop n $ T.splitOn "\n" contents
+   in mapMaybe classify contents'
+
+-- * Storage stuff
+
+data StorageHandle = MkStorageHandle
+  { saveExpenses :: [Classification] -> IO ()
+  , getExpenses  :: IO [Classification]
+  }
+
+mkStorageHandle :: ([Classification] -> IO ()) -> (IO [Classification]) -> StorageHandle
+mkStorageHandle = MkStorageHandle
+
+-- TODO: We might want to expose an API for storing contents from many files at once to avoid multiple DB queries.
+storeExpenses :: StorageHandle -> Int -> FileContents -> IO ()
+storeExpenses sh n contents =
+  let expenses = classifyFromFileContents n contents in
+    saveExpenses sh expenses
+
+retrieveExpenses :: StorageHandle -> IO [Classification]
+retrieveExpenses sh = getExpenses sh
