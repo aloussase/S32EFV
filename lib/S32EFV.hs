@@ -19,8 +19,11 @@ data Movement = MkMovement
 data Classification = Wants Movement | Needs Movement deriving Show
 
 data Aggregate = MkAggregate
-  { tWants :: !Double
-  , tNeeds :: !Double
+  { tWants   :: !Double
+  , tNeeds   :: !Double
+  , tSpent   :: !Double
+  , pctWants :: !Double
+  , pctNeeds :: !Double
   } deriving Show
 
 wants, needs :: [Text]
@@ -73,6 +76,10 @@ toFloat cls =
 -- | Aggregate the provided classified expenses.
 -- This provides statistics such as total expenses, total wants, percentage expenses; etc.
 aggregate :: [Classification] -> Aggregate
-aggregate cls = MkAggregate
-  (foldl' ((+)) 0 $ mapMaybe toFloat $ filter isWants cls)
-  (foldl' ((+)) 0 $ mapMaybe toFloat $ filter (not . isWants) cls)
+aggregate cls =
+  let ws = foldl' ((+)) 0 $ mapMaybe toFloat $ filter isWants cls
+      ns = foldl' ((+)) 0 $ mapMaybe toFloat $ filter (not . isWants) cls
+      ts = ws + ns
+   in MkAggregate (toFixed ws) (toFixed ns) (toFixed ts) (toFixed $ ws / ts) (toFixed $ ns / ts)
+  where
+    toFixed n = (fromInteger $ round $ n * (10 ^ (2 :: Int))) / (10.0 ^^ (2 :: Int))

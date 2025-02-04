@@ -48,16 +48,19 @@ aggregateSpec = describe "aggregate" $ do
     let result = aggregate [mkNeed "$2.0", mkNeed "$1.50"]
     tNeeds result `shouldBe` 3.50
     tWants result `shouldBe` 0.0
+    tSpent result `shouldBe` 3.50
 
   it "correctly aggregates two wants" $ do
     let result = aggregate [mkWant "$2.0", mkWant "$1.50"]
     tNeeds result `shouldBe` 0.0
     tWants result `shouldBe` 3.5
+    tSpent result `shouldBe` 3.50
 
   it "correctly aggregates a want and a need" $ do
     let result = aggregate [mkWant "$2.0", mkNeed "$1.50"]
     tNeeds result `shouldBe` 1.50
     tWants result `shouldBe` 2.0
+    tSpent result `shouldBe` 3.50
 
   it "correctly aggregates two wants and a two needs" $ do
     let result = aggregate [mkWant "$2.0", mkWant "$3.69", mkNeed "$1.50", mkNeed "$4.50"]
@@ -68,11 +71,13 @@ aggregateSpec = describe "aggregate" $ do
     let result = aggregate [mkWant "5.6", mkWant "$1.0"]
     tNeeds result `shouldBe` 0.0
     tWants result `shouldBe` 1.0
+    tSpent result `shouldBe` 1.0
 
   it "correctly handles commas in thousands" $ do
     let result = aggregate [mkWant "$1,340.0"]
     tNeeds result `shouldBe` 0.0
     tWants result `shouldBe` 1340.0
+    tSpent result `shouldBe` 1340.0
 
 
 -- * Helpers
