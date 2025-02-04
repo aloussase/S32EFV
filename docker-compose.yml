@@ -1,0 +1,25 @@
+services:
+  db:
+    image: postgres:15
+    container_name: S32EFV_postgres
+    ports: 
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: S32EFV
+      POSTGRES_PASSWORD: S32EFV
+      POSTGRES_DB: S32EFV
+    restart: unless-stopped
+    volumes:
+      - ./schema.sql:/docker-entrypoint-initdb.d/init.sql
+
+  grafana:
+    image: grafana/grafana-oss
+    container_name: S32EFV_grafana
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    volumes:
+      - grafana-storage:/var/lib/grafana
+
+volumes:
+  grafana-storage: {}
