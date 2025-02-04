@@ -3,6 +3,7 @@ module S32EFV
 , Classification(..), Aggregate(..)
 , storeExpenses, retrieveExpenses
 , mkStorageHandle, StorageHandle
+, toFloat
 ) where
 
 import           Control.Monad ((<=<))
