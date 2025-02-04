@@ -11,15 +11,25 @@ services:
     restart: unless-stopped
     volumes:
       - ./schema.sql:/docker-entrypoint-initdb.d/init.sql
+      - postgres-data:/var/lib/postgresql/data
 
   grafana:
     image: grafana/grafana-oss
     container_name: S32EFV_grafana
     restart: unless-stopped
+    environment:
+      GF_PATHS_PROVISIONING: /etc/grafana/provisioning
+
     ports:
       - "3000:3000"
     volumes:
       - grafana-storage:/var/lib/grafana
+      - ./configs/grafana/expenses-dashboard.yml:/etc/grafana/provisioning/dashboards/expenses-dashboard.yml
+      - ./configs/grafana/postgres-datasource.yml:/etc/grafana/provisioning/datasources/postgres-datasource.yml
+      - ./configs/grafana/expenses-dashboard.json:/etc/grafana/provisioning/dashboards/expenses-dashboard.json
+    depends_on:
+      - db
 
 volumes:
   grafana-storage: {}
+  postgres-data: {}
