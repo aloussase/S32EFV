@@ -1,5 +1,7 @@
 # 💸 50/30/20 Expenses Framework Visualizer
 
+![Example Dashboard](./assets/demo)
+
 The 50/30/20 framework for managing for expenses basically means setting 20% of you income aside as savings,
 30% for things that you want (_wants_) and 50% for things that you need (_needs_). You can read more about it
 on the internet.
