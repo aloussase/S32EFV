@@ -14,9 +14,10 @@ import qualified Data.Text.Lazy.Encoding    as TLE
 import           Database.PostgreSQL.Simple
 import           Network.HTTP.Types.Status
 import           Network.Wai.Parse
+import           Options.Applicative
 import           System.Environment
 import           System.IO
-import           Web.Scotty
+import           Web.Scotty                 hiding (Options, header)
 
 runInteractive :: Int -> IO ()
 runInteractive toSkip = print . aggregate . mapMaybe id =<< go 0 []
@@ -72,10 +73,61 @@ mkPostgresStorageHandle = do
        in yyyy <> "-" <> mm <> "-" <> dd
 
 
-defaultSkipLines :: Int
-defaultSkipLines = 12
+data Options = Options
+  { optCommand :: !Command
+  }
+
+data Command
+  = Interactive InteractiveOptions
+  | Serve ServeOptions
+
+data InteractiveOptions = InteractiveOptions
+  { interactiveOptSkipLines :: !Int
+  }
+
+data ServeOptions = ServeOptions
+  { serveOptSkipLines :: !Int
+  }
+
+interactiveCommand :: Parser Command
+interactiveCommand = Interactive <$> InteractiveOptions
+  <$> option auto
+    ( long "skip"
+    <> short 's'
+    <> showDefault
+    <> value 12
+    <> metavar "INT"
+    )
+
+serveCommand :: Parser Command
+serveCommand = Serve <$> ServeOptions
+    <$> option auto
+      ( long "skip"
+      <> short 's'
+      <> showDefault
+      <> value 12
+      <> metavar "INT"
+      )
+
+optParser :: Parser Options
+optParser = Options
+  <$> subparser
+    ( command "interact" (info interactiveCommand (progDesc "Run the program in interactive mode") )
+   <> command "serve" (info serveCommand (progDesc "Run an HTTP server") )
+    )
+
+opts :: ParserInfo Options
+opts = info (optParser <**> helper)
+  ( fullDesc
+  <> progDesc "Calculate your expenses according to the 50/30/20 scheme"
+  <> header "S32EFV - a tool to help you keep track of your expenses"
+  )
 
 main :: IO ()
 main = do
-  sh <- mkPostgresStorageHandle
-  runServer sh defaultSkipLines
+  opts' <- execParser opts
+  case optCommand opts' of
+    Interactive iOpts -> runInteractive (interactiveOptSkipLines iOpts)
+    Serve sOpts       -> do
+      sh <- mkPostgresStorageHandle
+      runServer sh (serveOptSkipLines sOpts)
