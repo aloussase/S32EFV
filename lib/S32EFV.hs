@@ -1,43 +1,23 @@
 module S32EFV
 ( classify, aggregate, Movement(..)
 , Classification(..), Aggregate(..)
+, ParseHandle (getIdentifier, parseMovement)
 , storeExpenses, retrieveExpenses
 , mkStorageHandle, StorageHandle
 , toFloat
+, mkBancoGuayaquilParseHandle
+, module S32EFV.Config
 ) where
 
-import           Control.Monad ((<=<))
-import           Data.Aeson    (ToJSON (..))
-import           Data.List     (foldl')
-import           Data.Maybe    (mapMaybe)
-import           Data.Text     (Text)
-import qualified Data.Text     as T
-import           GHC.Generics  (Generic)
+import           S32EFV.Config
+import           S32EFV.Parse.BancoGuayaquil
+import           S32EFV.Parse.Handle
+import           S32EFV.Types
 
-type Line = Text
-
-data Movement = MkMovement
-  { mDate  :: !Text
-  , mTipo  :: !Text
-  , mMonto :: !Text
-  , mRef   :: !Text
-  }
-  deriving stock (Show, Generic)
-  deriving anyclass ToJSON
-
-data Classification = Wants Movement | Needs Movement deriving Show
-
-instance ToJSON Classification where
-  toJSON (Wants m) = toJSON m
-  toJSON (Needs m) = toJSON m
-
-data Aggregate = MkAggregate
-  { tWants   :: !Double
-  , tNeeds   :: !Double
-  , tSpent   :: !Double
-  , pctWants :: !Double
-  , pctNeeds :: !Double
-  } deriving Show
+import           Data.List                   (foldl')
+import           Data.Maybe                  (mapMaybe)
+import           Data.Text                   (Text)
+import qualified Data.Text                   as T
 
 wants, needs :: [Text]
 wants = ["uber", "sweet", "wellness", "amazon", "mall", "hm", "restaurante", "rappi"]
@@ -47,8 +27,8 @@ isExpense :: Movement -> Bool
 isExpense (MkMovement _ tipo _ _) = tipo `elem` ["nota debito", "nota de debito"]
 
 -- | Classify the incoming expenses document into 'Wants' and 'Needs'.
-classify :: Line -> Maybe Classification
-classify = classify' <=< parse . normalize
+classify :: ParseHandle -> Line -> Maybe Classification
+classify ph line = classify' =<< parseMovement ph (normalize line)
 
 parse :: Line -> Maybe Movement
 parse line | not $ T.null line =
@@ -101,10 +81,10 @@ type FileContents = Text
 
 -- | Parse expenses from file contents
 -- The first parameter tells how many lines to skip before starting to parse.
-classifyFromFileContents :: Int -> FileContents -> [Classification]
-classifyFromFileContents n contents =
+classifyFromFileContents :: ParseHandle -> Int -> FileContents -> [Classification]
+classifyFromFileContents ph n contents =
   let contents' = drop n $ T.splitOn "\n" contents
-   in mapMaybe classify contents'
+   in mapMaybe (classify ph) contents'
 
 -- * Storage stuff
 
@@ -117,9 +97,9 @@ mkStorageHandle :: ([Classification] -> IO ()) -> (IO [Classification]) -> Stora
 mkStorageHandle = MkStorageHandle
 
 -- TODO: We might want to expose an API for storing contents from many files at once to avoid multiple DB queries.
-storeExpenses :: StorageHandle -> Int -> FileContents -> IO ()
-storeExpenses sh n contents =
-  let expenses = classifyFromFileContents n contents in
+storeExpenses :: ParseHandle -> StorageHandle -> Int -> FileContents -> IO ()
+storeExpenses ph sh n contents =
+  let expenses = classifyFromFileContents ph n contents in
     saveExpenses sh expenses
 
 retrieveExpenses :: StorageHandle -> IO [Classification]

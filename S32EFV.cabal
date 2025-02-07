@@ -1,17 +1,18 @@
-cabal-version:   3.0
-name:            S32EFV
-version:         0.1.0.0
+cabal-version: 3.0
+name:          S32EFV
+version:       0.1.0.0
 
 -- synopsis:           
 -- description:
-license:         MIT
-license-file:    LICENSE
-author:          Alexander Goussas
-maintainer:      goussasalexander@gmail.com
+license:       MIT
+license-file:  LICENSE
+author:        Alexander Goussas
+maintainer:    goussasalexander@gmail.com
 
 -- copyright:
-category:        Text
-build-type:      Simple
+category:      Text
+build-type:    Simple
+
 -- extra-doc-files: CHANGELOG.md
 
 -- extra-source-files:
@@ -22,9 +23,17 @@ common warnings
 library
   import:             warnings
   exposed-modules:    S32EFV
+  other-modules:
+    S32EFV.Types
+    S32EFV.Config
+    S32EFV.Parse.BancoBolivariano
+    S32EFV.Parse.BancoGuayaquil
+    S32EFV.Parse.Handle
+
   build-depends:
     , aeson
-    , base   ^>=4.17.2.1
+    , base        ^>=4.17.2.1
+    , megaparsec
     , text
 
   hs-source-dirs:     lib
@@ -35,10 +44,12 @@ library
     DerivingStrategies
     OverloadedStrings
     TypeApplications
+    ScopedTypeVariables
 
 executable S32EFV
   import:             warnings
   main-is:            Main.hs
+  other-modules: Options
   build-depends:
     , aeson                 >=2.2.3     && <2.3
     , base                  ^>=4.17.2.1

@@ -13,33 +13,36 @@ spec = do
 classifySpec :: Spec
 classifySpec = do
   describe "classify" $ do
-    it "correctly classifies single line as needs" $
-      case classify "1\t02/02/2025\t03/02/2025\tNOTA DEBITO\t117271\tIVA SERVICIO DIGITAL AH\tMATRIZ\t$0.31\t$689.40\t$689.40\t\t\t" of
-        Just (Needs m) -> do
-          mDate m `shouldBe` "02/02/2025"
-          mTipo m `shouldBe` "nota debito"
-          mMonto m `shouldBe` "$0.31"
-          mRef m `shouldBe` ""
-        _ -> error "expected Needs but got Wants"
+    context "Banco Guayaquil" $ do
+      let ph = mkBancoGuayaquilParseHandle
 
-    it "correctly classifies single line as wants" $ do
-      case classify "23\t28/01/2025\t28/01/2025\tNOTA DE DEBITO\t8315\tCOMPRA MAESTRO LOCAL\tMATRIZ\t$12.71\t$1,124.12\t$1,124.12\tLITTLE ITALY MALL DEL  GU009MDS26IPI5\t514440XXXXXX1000\tLITTLE ITALY MALL DEL  GU009MDS26IPI5" of
-        Just (Wants m) -> do
-          mDate m `shouldBe` "28/01/2025"
-          mTipo m `shouldBe` "nota de debito"
-          mMonto m `shouldBe` "$12.71"
-          mRef m `shouldBe` "little italy mall del  gu009mds26ipi5"
-        _ -> error "expected Wants but got Needs"
+      it "correctly classifies single line as needs" $
+        case classify ph "1\t02/02/2025\t03/02/2025\tNOTA DEBITO\t117271\tIVA SERVICIO DIGITAL AH\tMATRIZ\t$0.31\t$689.40\t$689.40\t\t\t" of
+          Just (Needs m) -> do
+            mDate m `shouldBe` "02/02/2025"
+            mTipo m `shouldBe` "nota debito"
+            mMonto m `shouldBe` "$0.31"
+            mRef m `shouldBe` ""
+          _ -> error "expected Needs but got Wants"
 
-    it "returns Nothing when given a movement that is not an expense" $ example $
-      case classify "6\t01/02/2025\t03/02/2025\tNOTA CREDITO\t503781\tIVA SERVICIO DIGITAL AH\tMATRIZ\t$0.37\t$764.51\t$764.51\tREVERSO\t" of
-        Nothing -> return ()
-        _       -> error "expected Nothing but got a something"
+      it "correctly classifies single line as wants" $ do
+        case classify ph "23\t28/01/2025\t28/01/2025\tNOTA DE DEBITO\t8315\tCOMPRA MAESTRO LOCAL\tMATRIZ\t$12.71\t$1,124.12\t$1,124.12\tLITTLE ITALY MALL DEL  GU009MDS26IPI5\t514440XXXXXX1000\tLITTLE ITALY MALL DEL  GU009MDS26IPI5" of
+          Just (Wants m) -> do
+            mDate m `shouldBe` "28/01/2025"
+            mTipo m `shouldBe` "nota de debito"
+            mMonto m `shouldBe` "$12.71"
+            mRef m `shouldBe` "little italy mall del  gu009mds26ipi5"
+          _ -> error "expected Wants but got Needs"
 
-    it "returns Nothing when given an invalid line" $ example $
-      case classify "6\t01/02/2025\t03/02/2025\tNOTA CREDITO\t503781\tIVA SERVICIO DIGITAL AH\tMATRIZ\t$0.37\t$764.51\t$764.51" of
-        Nothing -> return ()
-        _ -> error "expected invalid line not to be successfully parsed, but it somehow was :o"
+      it "returns Nothing when given a movement that is not an expense" $ example $
+        case classify ph "6\t01/02/2025\t03/02/2025\tNOTA CREDITO\t503781\tIVA SERVICIO DIGITAL AH\tMATRIZ\t$0.37\t$764.51\t$764.51\tREVERSO\t" of
+          Nothing -> return ()
+          _       -> error "expected Nothing but got a something"
+
+      it "returns Nothing when given an invalid line" $ example $
+        case classify ph "6\t01/02/2025\t03/02/2025\tNOTA CREDITO\t503781\tIVA SERVICIO DIGITAL AH\tMATRIZ\t$0.37\t$764.51\t$764.51" of
+          Nothing -> return ()
+          _ -> error "expected invalid line not to be successfully parsed, but it somehow was :o"
 
 
 aggregateSpec :: Spec

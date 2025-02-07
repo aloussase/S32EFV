@@ -1,5 +1,6 @@
 module Main where
 
+import           Options
 import           S32EFV
 
 import           Control.Monad              (forM_, void)
@@ -19,19 +20,19 @@ import           System.Environment
 import           System.IO
 import           Web.Scotty                 hiding (Options, header)
 
-runInteractive :: Int -> IO ()
-runInteractive toSkip = print . aggregate . mapMaybe id =<< go 0 []
+runInteractive :: ParseHandle -> Int -> IO ()
+runInteractive ph toSkip = print . aggregate . mapMaybe id =<< go 0 []
   where
     go n cls | n >= toSkip = do
       closed <- isEOF
       if closed then pure cls
       else do
-        cls' <- (classify <$> TIO.getLine)
+        cls' <- (classify ph <$> TIO.getLine)
         go n (cls' : cls)
     go n cls = TIO.getLine >> go (n + 1) cls
 
-runServer :: StorageHandle -> Int -> IO ()
-runServer sh skip = scotty 3000 $ do
+runServer :: ParseHandle -> StorageHandle -> Int -> IO ()
+runServer ph sh skip = scotty 3000 $ do
   get "/api/expenses" $ do
     -- Returns a list of all expenses
     expenses <- liftIO $ retrieveExpenses sh
@@ -41,7 +42,7 @@ runServer sh skip = scotty 3000 $ do
     -- Upload a file with expenses
     uploaded <- files
     forM_ (map (TL.toStrict . TLE.decodeUtf8 . fileContent . snd) uploaded) $ \contents ->
-      liftIO $ storeExpenses sh skip contents
+      liftIO $ storeExpenses ph sh skip contents
     status status201
 
 mkPostgresStorageHandle :: IO StorageHandle
@@ -73,61 +74,11 @@ mkPostgresStorageHandle = do
        in yyyy <> "-" <> mm <> "-" <> dd
 
 
-data Options = Options
-  { optCommand :: !Command
-  }
-
-data Command
-  = Interactive InteractiveOptions
-  | Serve ServeOptions
-
-data InteractiveOptions = InteractiveOptions
-  { interactiveOptSkipLines :: !Int
-  }
-
-data ServeOptions = ServeOptions
-  { serveOptSkipLines :: !Int
-  }
-
-interactiveCommand :: Parser Command
-interactiveCommand = Interactive <$> InteractiveOptions
-  <$> option auto
-    ( long "skip"
-    <> short 's'
-    <> showDefault
-    <> value 12
-    <> metavar "INT"
-    )
-
-serveCommand :: Parser Command
-serveCommand = Serve <$> ServeOptions
-    <$> option auto
-      ( long "skip"
-      <> short 's'
-      <> showDefault
-      <> value 12
-      <> metavar "INT"
-      )
-
-optParser :: Parser Options
-optParser = Options
-  <$> subparser
-    ( command "interact" (info interactiveCommand (progDesc "Run the program in interactive mode") )
-   <> command "serve" (info serveCommand (progDesc "Run an HTTP server") )
-    )
-
-opts :: ParserInfo Options
-opts = info (optParser <**> helper)
-  ( fullDesc
-  <> progDesc "Calculate your expenses according to the 50/30/20 scheme"
-  <> header "S32EFV - a tool to help you keep track of your expenses"
-  )
-
 main :: IO ()
 main = do
   opts' <- execParser opts
   case optCommand opts' of
-    Interactive iOpts -> runInteractive (interactiveOptSkipLines iOpts)
+    Interactive iOpts -> runInteractive (optParseHandle opts')(interactiveOptSkipLines iOpts)
     Serve sOpts       -> do
       sh <- mkPostgresStorageHandle
-      runServer sh (serveOptSkipLines sOpts)
+      runServer (optParseHandle opts') sh (serveOptSkipLines sOpts)
