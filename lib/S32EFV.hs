@@ -21,10 +21,6 @@ import           Data.Maybe                  (mapMaybe)
 import           Data.Text                   (Text)
 import qualified Data.Text                   as T
 
-wants, needs :: [Text]
-wants = ["uber", "sweet", "wellness", "amazon", "mall", "hm", "restaurante", "rappi"]
-needs = ["farmacia", "megamaxi"]
-
 isExpense :: Movement -> Bool
 isExpense (MkMovement _ tipo _ _) = tipo `elem` ["nota debito", "nota de debito"]
 
