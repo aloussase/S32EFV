@@ -4,14 +4,16 @@ module S32EFV
 , ParseHandle (getIdentifier, parseMovement)
 , storeExpenses, retrieveExpenses
 , mkStorageHandle, StorageHandle
-, toFloat
-, mkBancoGuayaquilParseHandle
 , module S32EFV.Config
+, module S32EFV.Storage.Postgres
+, module S32EFV.Parse.BancoGuayaquil
 ) where
 
 import           S32EFV.Config
 import           S32EFV.Parse.BancoGuayaquil
 import           S32EFV.Parse.Handle
+import           S32EFV.Storage.Handle
+import           S32EFV.Storage.Postgres
 import           S32EFV.Types
 
 import           Data.List                   (foldl')
@@ -30,18 +32,6 @@ isExpense (MkMovement _ tipo _ _) = tipo `elem` ["nota debito", "nota de debito"
 classify :: ParseHandle -> Line -> Maybe Classification
 classify ph line = classify' =<< parseMovement ph (normalize line)
 
-parse :: Line -> Maybe Movement
-parse line | not $ T.null line =
-  let parts = T.splitOn "\t" line in
-    if length parts < 11 then Nothing
-    else pure $ MkMovement
-      { mDate = parts !! 1
-      , mTipo = parts !! 3
-      , mMonto = parts !! 7
-      , mRef = parts !! 10
-      }
-parse _ = Nothing
-
 normalize :: Line -> Line
 normalize = T.toLower
 
@@ -58,20 +48,12 @@ isWants :: Classification -> Bool
 isWants (Wants _) = True
 isWants _         = False
 
-toFloat :: Classification -> Maybe Double
-toFloat cls =
-  let n = mMonto $
-        case cls of
-          Wants n' -> n'
-          Needs n' -> n'
-   in read . T.unpack <$> (T.stripPrefix "$" $ T.replace "," "" n)
-
 -- | Aggregate the provided classified expenses.
 -- This provides statistics such as total expenses, total wants, percentage expenses; etc.
 aggregate :: [Classification] -> Aggregate
 aggregate cls =
-  let ws = foldl' ((+)) 0 $ mapMaybe toFloat $ filter isWants cls
-      ns = foldl' ((+)) 0 $ mapMaybe toFloat $ filter (not . isWants) cls
+  let ws = foldl' ((+)) 0 $ mapMaybe classificationToFloat $ filter isWants cls
+      ns = foldl' ((+)) 0 $ mapMaybe classificationToFloat $ filter (not . isWants) cls
       ts = ws + ns
    in MkAggregate (toFixed ws) (toFixed ns) (toFixed ts) (toFixed $ ws / ts) (toFixed $ ns / ts)
   where
@@ -85,16 +67,6 @@ classifyFromFileContents :: ParseHandle -> Int -> FileContents -> [Classificatio
 classifyFromFileContents ph n contents =
   let contents' = drop n $ T.splitOn "\n" contents
    in mapMaybe (classify ph) contents'
-
--- * Storage stuff
-
-data StorageHandle = MkStorageHandle
-  { saveExpenses :: [Classification] -> IO ()
-  , getExpenses  :: IO [Classification]
-  }
-
-mkStorageHandle :: ([Classification] -> IO ()) -> (IO [Classification]) -> StorageHandle
-mkStorageHandle = MkStorageHandle
 
 -- TODO: We might want to expose an API for storing contents from many files at once to avoid multiple DB queries.
 storeExpenses :: ParseHandle -> StorageHandle -> Int -> FileContents -> IO ()

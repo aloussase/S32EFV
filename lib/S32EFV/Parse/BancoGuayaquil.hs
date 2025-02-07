@@ -1,4 +1,4 @@
-module S32EFV.Parse.BancoGuayaquil where
+module S32EFV.Parse.BancoGuayaquil (mkBancoGuayaquilParseHandle) where
 
 import           S32EFV.Parse.Handle
 import           S32EFV.Types
