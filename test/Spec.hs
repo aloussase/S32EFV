@@ -44,6 +44,23 @@ classifySpec = do
           Nothing -> return ()
           _ -> error "expected invalid line not to be successfully parsed, but it somehow was :o"
 
+    context "Banco Bolivariano" $ do
+      let ph = mkBancoBolivarianoParseHandle
+
+      it "returns the movement when given an expense" $ example $
+        case classify ph "1,05/02/2025,631,0-GYQL,XXXXXXXXXX,'XXXXXXXXXXXXXXXXX,(-),10.00,645.60,645.60,RETIRO CAJEROS AH-BB" of
+          Just (Needs m) -> do
+            mDate m `shouldBe` "05/02/2025"
+            mTipo m `shouldBe` "nota debito"
+            mMonto m `shouldBe` "10.00"
+            mRef m `shouldBe` "retiro cajeros ah-bb"
+          _ -> error "expected valid movement"
+
+      it "returns Nothing when given a movement that is not an expense" $ example $
+        case classify ph "2,01/02/2025,0,0-GYQL,XXXXXXXXXX,'XXXXXXXXXXXXXXXXXX,(+),0.03,655.60,655.60,N/C INTERESES" of
+          Nothing -> return ()
+          _       -> error "classified as expense incorrectly"
+
 
 aggregateSpec :: Spec
 aggregateSpec = describe "aggregate" $ do
@@ -71,7 +88,7 @@ aggregateSpec = describe "aggregate" $ do
     tWants result `shouldSatisfy` (\n -> n > 5.68 && n <= 5.69)
 
   it "correctly handles invalid amount strings" $ do
-    let result = aggregate [mkWant "5.6", mkWant "$1.0"]
+    let result = aggregate [mkWant "", mkWant "$1.0"]
     tNeeds result `shouldBe` 0.0
     tWants result `shouldBe` 1.0
     tSpent result `shouldBe` 1.0
@@ -82,6 +99,11 @@ aggregateSpec = describe "aggregate" $ do
     tWants result `shouldBe` 1340.0
     tSpent result `shouldBe` 1340.0
 
+  it "correctly handles values without the dollar sign" $ do
+    let result = aggregate [mkWant "5.6", mkWant "1.0"]
+    tNeeds result `shouldBe` 0.0
+    tWants result `shouldBe` 6.6
+    tSpent result `shouldBe` 6.6
 
 -- * Helpers
 

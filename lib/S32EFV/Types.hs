@@ -1,9 +1,19 @@
-module S32EFV.Types where
+module S32EFV.Types
+( Line
+, Movement (..)
+, Classification (..)
+, classificationToFloat
+, Aggregate (..)
+) where
 
-import           Data.Aeson   (ToJSON (..))
-import           Data.Text    (Text)
-import qualified Data.Text    as T
-import           GHC.Generics (Generic)
+import           Data.Aeson                 (ToJSON (..))
+import           Data.Text                  (Text)
+import qualified Data.Text                  as T
+import           Data.Void
+import           GHC.Generics               (Generic)
+import           Text.Megaparsec
+import           Text.Megaparsec.Char       (char)
+import           Text.Megaparsec.Char.Lexer (float)
 
 type Line = Text
 
@@ -24,7 +34,8 @@ classificationToFloat cls =
         case cls of
           Wants n' -> n'
           Needs n' -> n'
-   in read . T.unpack <$> (T.stripPrefix "$" $ T.replace "," "" n)
+      p :: Parsec Void Text Double = optional (char '$') *> float
+   in parseMaybe p (T.replace "," "" n)
 
 instance ToJSON Classification where
   toJSON (Wants m) = toJSON m

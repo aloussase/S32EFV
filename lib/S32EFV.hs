@@ -7,19 +7,21 @@ module S32EFV
 , module S32EFV.Config
 , module S32EFV.Storage.Postgres
 , module S32EFV.Parse.BancoGuayaquil
+, module S32EFV.Parse.BancoBolivariano
 ) where
 
 import           S32EFV.Config
+import           S32EFV.Parse.BancoBolivariano
 import           S32EFV.Parse.BancoGuayaquil
 import           S32EFV.Parse.Handle
 import           S32EFV.Storage.Handle
 import           S32EFV.Storage.Postgres
 import           S32EFV.Types
 
-import           Data.List                   (foldl')
-import           Data.Maybe                  (mapMaybe)
-import           Data.Text                   (Text)
-import qualified Data.Text                   as T
+import           Data.List                     (foldl')
+import           Data.Maybe                    (mapMaybe)
+import           Data.Text                     (Text)
+import qualified Data.Text                     as T
 
 isExpense :: Movement -> Bool
 isExpense (MkMovement _ tipo _ _) = tipo `elem` ["nota debito", "nota de debito"]
