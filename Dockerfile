@@ -16,4 +16,7 @@ RUN cabal build --only-dependencies -j4
 COPY . /app/
 RUN cabal install -j4
 
-ENTRYPOINT ["S32EFV", "serve"]
+ENV S32EFV_PARSER=banco-guayaquil
+ENV S32EFV_SKIP=12
+
+ENTRYPOINT S32EFV -p $S32EFV_PARSER serve -s $S32EFV_SKIP

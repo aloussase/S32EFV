@@ -58,7 +58,7 @@ optParser = Options
   <*> option (maybeReader parseHandleReader)
       ( long "parser"
       <> short 'p'
-      <> help ("One of " <> intercalate "," (map (T.unpack . getIdentifier) parsers))
+      <> help ("One of " <> intercalate ", " (map (T.unpack . getIdentifier) parsers))
       )
 
 opts :: ParserInfo Options

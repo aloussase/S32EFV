@@ -23,6 +23,9 @@ another format, feel free to open an issue about it :).
 - Banco Guayaquil
 - Banco Bolivariano
 
+> [!IMPORTANT]
+> Please, make sure your input file is UTF-8 encoded. Some banks export in a different file format.
+
 ## 🔍 How are expenses classified?
 
 Expenses classification is a very subjective topic, since what is considered a need for me may be a want for you.
@@ -44,6 +47,9 @@ cd S32EFV
 ```
 
 2. Spin up the containers with docker compose
+
+> [!NOTE]
+> You will likely need to modify the environment variables in the compose file to suite your specific bank.
 
 ```
 # If you have standalone docker compose
