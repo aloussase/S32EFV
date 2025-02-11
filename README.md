@@ -18,6 +18,11 @@ your bank website. It must be a TXT file.
 I don't know if all banks follow the same format. I have tested using Banco Guayaquil. If you want support for
 another format, feel free to open an issue about it :).
 
+**Currently supported formats**
+
+- Banco Guayaquil
+- Banco Bolivariano
+
 ## 🔍 How are expenses classified?
 
 Expenses classification is a very subjective topic, since what is considered a need for me may be a want for you.
